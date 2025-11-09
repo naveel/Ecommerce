@@ -57,6 +57,7 @@ async function createSubjectMask(buffer: Buffer, metadata: Metadata): Promise<Bu
     .normalize()
     .blur(12)
     .threshold(170)
+    .raw()
     .toBuffer({ resolveWithObject: true });
 
   return sharp(data, {
@@ -130,11 +131,13 @@ async function createShadow(width: number, height: number): Promise<Buffer> {
           }
         })
           .blur(18)
+          .png()
           .toBuffer(),
         top: Math.min(height - shadowHeight, Math.round(height * 0.78)),
         left: Math.round((width - shadowWidth) / 2)
       }
     ])
+    .png()
     .toBuffer();
 }
 
@@ -193,6 +196,7 @@ async function exportVariants(
           left
         }
       ])
+      .png()
       .toBuffer();
 
     const webp = await sharp(composite).webp({ lossless: true }).toBuffer();
@@ -344,6 +348,7 @@ export async function processImages(options: {
         left: 0
       }
     ])
+    .png()
     .toBuffer();
 
   const stats = await sharp(polished).stats();

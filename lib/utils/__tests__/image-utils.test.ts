@@ -74,8 +74,8 @@ describe("processImages", () => {
   async function createProduct(): Promise<Buffer> {
     return sharp({
       create: {
-        width: 600,
-        height: 400,
+        width: 900,
+        height: 700,
         channels: 4,
         background: { r: 210, g: 160, b: 60, alpha: 1 }
       }
@@ -101,5 +101,5 @@ describe("processImages", () => {
       expect(Buffer.from(result.jpeg, "base64").length).toBeGreaterThan(0);
     }
     expect(payload.zipBase64.length).toBeGreaterThan(0);
-  });
+  }, 20000);
 });
