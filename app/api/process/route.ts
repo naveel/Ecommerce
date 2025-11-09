@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ALLOWED_MIME, MAX_FILE_SIZE, fileToBuffer, processImages } from "@/lib/utils/image";
+import { isGptCompositorAvailable, processImagesWithGpt } from "@/lib/utils/gpt";
 import type { Category } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     const product = formData.get("product");
     const categoryValue = formData.get("category");
     const scaleValue = formData.get("scaleFactor");
+    const useGptValue = formData.get("useGpt");
 
     if (!(model instanceof File) || !(product instanceof File)) {
       return NextResponse.json({ message: "Both images are required." }, { status: 400 });
@@ -37,12 +39,45 @@ export async function POST(request: Request) {
 
     const [modelBuffer, productBuffer] = await Promise.all([fileToBuffer(model), fileToBuffer(product)]);
 
-    const payload = await processImages({
-      category: parsed.data.category as Category,
-      model: modelBuffer,
-      product: productBuffer,
-      scaleFactor: parsed.data.scaleFactor
-    });
+    const category = parsed.data.category as Category;
+    const scaleFactor = parsed.data.scaleFactor;
+    const useGpt = useGptValue === "true";
+
+    if (useGpt && !isGptCompositorAvailable()) {
+      return NextResponse.json({ message: "GPT processing is not configured." }, { status: 400 });
+    }
+
+    const runSharpPipeline = () =>
+      processImages({
+        category,
+        model: modelBuffer,
+        product: productBuffer,
+        scaleFactor
+      });
+
+    const runGptPipeline = () =>
+      processImagesWithGpt({
+        category,
+        model: modelBuffer,
+        product: productBuffer,
+        scaleFactor
+      });
+
+    let payload;
+    if (useGpt) {
+      payload = await runGptPipeline();
+    } else {
+      try {
+        payload = await runSharpPipeline();
+      } catch (error) {
+        if (isGptCompositorAvailable()) {
+          console.warn("Sharp compositor failed, attempting GPT fallback", error);
+          payload = await runGptPipeline();
+        } else {
+          throw error;
+        }
+      }
+    }
 
     return NextResponse.json(payload, {
       headers: {

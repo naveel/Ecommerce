@@ -353,13 +353,35 @@ export async function processImages(options: {
     .png()
     .toBuffer();
 
+  return buildProcessResponseFromComposite({
+    category,
+    polished,
+    compositeOnBackground: polishedOnBackground
+  });
+}
+
+function uniqueStrings(value: string, index: number, array: string[]): boolean {
+  return array.indexOf(value) === index;
+}
+
+function getDescriptorsForCategory(category: Category): string[] {
+  return category === "Jewelry" ? ["elegant", "refined"] : ["tailored", "modern"];
+}
+
+export async function buildProcessResponseFromComposite(options: {
+  category: Category;
+  polished: Buffer;
+  compositeOnBackground: Buffer;
+}): Promise<ProcessResponse> {
+  const { category, polished, compositeOnBackground } = options;
+
   const stats = await sharp(polished).stats();
-  const dominantColors = getDominantColors(stats).filter((color, index, arr) => arr.indexOf(color) === index);
-  const descriptors = category === "Jewelry" ? ["elegant", "refined"] : ["tailored", "modern"];
+  const dominantColors = getDominantColors(stats).filter(uniqueStrings);
+  const descriptors = getDescriptorsForCategory(category);
   const altText = buildAltText({ category, dominantColors, descriptors });
 
   const timestamp = Date.now();
-  const results = await exportVariants(polishedOnBackground, category, timestamp, altText);
+  const results = await exportVariants(compositeOnBackground, category, timestamp, altText);
   const zipBase64 = await createZip(results);
 
   return { results, zipBase64 };

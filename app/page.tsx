@@ -22,6 +22,8 @@ export default function HomePage() {
   const [scaleFactor, setScaleFactor] = useState(1);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
   const [modelPreview, setModelPreview] = useState<string | undefined>();
+  const [useGptPipeline, setUseGptPipeline] = useState(false);
+  const gptAvailable = process.env.NEXT_PUBLIC_ENABLE_GPT_PIPELINE === "true";
 
   useEffect(() => {
     if (!modelFile) return;
@@ -114,6 +116,7 @@ export default function HomePage() {
       formData.append("model", modelFile);
       formData.append("product", productFile);
       formData.append("scaleFactor", scaleFactor.toString());
+      formData.append("useGpt", gptAvailable && useGptPipeline ? "true" : "false");
 
       const response = await fetch("/api/process", {
         method: "POST",
@@ -215,6 +218,25 @@ export default function HomePage() {
             {isProcessing ? "Processing…" : "Process images"}
           </button>
         </div>
+        {gptAvailable ? (
+          <div className="lg:col-span-3 flex gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <input
+              id="use-gpt"
+              type="checkbox"
+              checked={useGptPipeline}
+              onChange={(event) => setUseGptPipeline(event.target.checked)}
+              disabled={isProcessing}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+            />
+            <label htmlFor="use-gpt" className="flex flex-col gap-1">
+              <span className="font-semibold text-slate-800">Use GPT compositing</span>
+              <span>
+                Send both images through the GPT API for AI-assisted blending. When disabled, the on-device Sharp pipeline will
+                run first and automatically fall back to GPT only if needed.
+              </span>
+            </label>
+          </div>
+        ) : null}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
