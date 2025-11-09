@@ -244,6 +244,8 @@ async function createZip(results: ProcessedImage[]): Promise<string> {
   const passthrough = new PassThrough();
   archive.pipe(passthrough);
 
+  const zipBufferPromise = streamToBuffer(passthrough);
+
   for (const result of results) {
     archive.append(Buffer.from(result.jpeg, "base64"), {
       name: result.filenames.jpeg
@@ -254,7 +256,7 @@ async function createZip(results: ProcessedImage[]): Promise<string> {
   }
 
   await archive.finalize();
-  const zipBuffer = await streamToBuffer(passthrough);
+  const zipBuffer = await zipBufferPromise;
   return zipBuffer.toString("base64");
 }
 
